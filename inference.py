@@ -48,7 +48,7 @@ if __name__ == "__main__":
     parser.add_argument("--strategy", type=str, choices=["greedy", "sample"])
     parser.add_argument("--num_samples", type=int, default=50, help="Number of samples to generate for each task")
     parser.add_argument("--model_name", type=str, default="Qwen/Qwen2-7B-Instruct", help="Model name")
-    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math", "aime24"], help="Dataset to use for generation")
+    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva"], help="Dataset to use for generation")
     parser.add_argument("--output_file", type=str, default="output.json", help="File to save the generated outputs")
     parser.add_argument("--dtype", type=str, default="bfloat16")
     parser.add_argument("--system_prompt", type=str, default=None, help="System prompt for the model")
@@ -64,15 +64,23 @@ if __name__ == "__main__":
         problems = Dataset.from_parquet(f"dataset/gsm8k_hard.parquet")
         gt_column_name = "answer"
         question_column_name = "question"
-    elif dataset_name == "math":
+    elif dataset_name == "aime25":
         # dataset = load_dataset("lighteval/MATH", "all")
-        problems = Dataset.from_parquet(f"dataset/math_test.parquet")
-        gt_column_name = "solution"
+        problems = Dataset.from_parquet(f"dataset/aime25.parquet")
+        gt_column_name = "answer"
         question_column_name = "problem"
     elif dataset_name == "aime24":
         problems = Dataset.from_parquet(f"dataset/aime24.parquet")
-        gt_column_name = "Answer"
-        question_column_name = "Problem"
+        gt_column_name = "answer"
+        question_column_name = "problem"
+    elif dataset_name == "minerva":
+        problems = Dataset.from_parquet(f"dataset/minerva_math.parquet")
+        gt_column_name = "answer"
+        question_column_name = "question"
+    elif dataset_name == "math500":
+        problems = Dataset.from_parquet(f"dataset/math500.parquet")
+        gt_column_name = "answer"
+        question_column_name = "problem"
 
 
     # problems = problems.select(range(10))
@@ -87,7 +95,7 @@ if __name__ == "__main__":
         sampling_params = SamplingParams(n=num_samples_per_task, top_k=-1,temperature=0, max_tokens=8192)
 
     elif strategy == "sample":
-        sampling_params = SamplingParams(n=num_samples_per_task, top_k=16, temperature=0.7, top_p=0.9, min_p=0.01, max_tokens=8192)
+        sampling_params = SamplingParams(n=num_samples_per_task, top_k=20, temperature=0.6, top_p=0.95, min_p=0.0, max_tokens=38912)
 
     all_prompts = []
     cnt = 0
@@ -97,12 +105,16 @@ if __name__ == "__main__":
                 {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{}."},
                 {"role": "user", "content": problems[task_id][question_column_name]}
             ]
-        elif dataset_name == "math":
+        elif dataset_name == "math500":
             cur_message = [
+                {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{}."},
                 {"role": "user", "content": problems[task_id][question_column_name]}
             ]
-        elif dataset_name == "aime24":
-            cur_message = [{"role": "user", "content": problems[task_id][question_column_name]}]
+        elif dataset_name == "aime24" or dataset_name == "minerva":
+            cur_message = [
+                {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{}."},
+                {"role": "user", "content": problems[task_id][question_column_name]}
+            ]
         if system_prompt is not None:
             cur_message = [{"role": "system", "content": system_prompt}] + cur_message
         

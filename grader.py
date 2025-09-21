@@ -23,14 +23,19 @@ def reward_function(dataset_name, response, raw_gt_answer):
         prediction = extract_answer(response, "math")
         return 1 if math_equal(prediction, ground_truth, timeout=True) else 0
 
-    elif dataset_name == "math":
-        ground_truth = extract_answer(raw_gt_answer, "math")
+    elif dataset_name == "math500":
+        ground_truth = str(raw_gt_answer)
         prediction = extract_answer(response, "math")
         return 1 if math_equal(prediction, ground_truth, timeout=True) else 0
 
     elif dataset_name == "aime24":
         ground_truth = str(raw_gt_answer)
         # ground_truth = extract_answer(raw_gt_answer, "math")
+        prediction = extract_answer(response, "math")
+        return 1 if math_equal(prediction, ground_truth, timeout=True) else 0
+    
+    elif dataset_name == "minerva":
+        ground_truth = str(raw_gt_answer)
         prediction = extract_answer(response, "math")
         return 1 if math_equal(prediction, ground_truth, timeout=True) else 0
 
@@ -88,10 +93,11 @@ if __name__ == "__main__":
 
     # Add arguments
     parser.add_argument("--num_samples", type=int, default=50, help="Number of samples to generate for each task")
-    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math", "aime24"], help="Dataset to use for generation")
+    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva"], help="Dataset to use for generation")
     parser.add_argument("--input_file", type=str, default=None, help="Input file containing questions (if not using built-in datasets)")
     parser.add_argument("--pass_at", type=int, default=3, help="Number of samples to select based on RM scores")
     parser.add_argument("--method", type=str, default="pessimistic", choices=["pessimistic", "majority", "reward"], help="Method to select k samples")
+    parser.add_argument("--threshold", type=float, default="0.0")
     
 
     args = parser.parse_args()
@@ -100,6 +106,7 @@ if __name__ == "__main__":
     input_file = args.input_file
     num_samples_per_task = args.num_samples
     k = args.pass_at
+    threshold = args.threshold
     # method = args.method
 
 
@@ -115,8 +122,16 @@ if __name__ == "__main__":
         question_column_name = "question"
     elif dataset_name == "aime24":
         problems = Dataset.from_parquet(f"dataset/aime24.parquet")
-        gt_column_name = "Answer"
-        question_column_name = "Problem"
+        gt_column_name = "answer"
+        question_column_name = "problem"
+    elif dataset_name == "minerva":
+        problems = Dataset.from_parquet(f"dataset/minerva_math.parquet")
+        gt_column_name = "answer"
+        question_column_name = "question"
+    elif dataset_name == "math500":
+        problems = Dataset.from_parquet(f"dataset/math500.parquet")
+        gt_column_name = "answer"
+        question_column_name = "problem"
 
     dataset_size = len(problems)
 
@@ -129,8 +144,8 @@ if __name__ == "__main__":
     # not_all_pass = []
     different_answers = []
 
-    if os.path.exists(f"output/{dataset_name}_different_answers.json"):
-        f = open(f"output/{dataset_name}_different_answers.json", "r")
+    if os.path.exists(f"output/{dataset_name}_{num_samples_per_task}_different_answers.json"):
+        f = open(f"output/{dataset_name}_{num_samples_per_task}_different_answers.json", "r")
         different_answers = json.load(f)
         f.close()
     else:
@@ -139,14 +154,14 @@ if __name__ == "__main__":
             different_answer = count_different_answers(response_and_scores)
             different_answers.append(different_answer)
     
-        f = open(f"output/{dataset_name}_different_answers.json", "w")
+        f = open(f"output/{dataset_name}_{num_samples_per_task}_different_answers.json", "w")
         json.dump(different_answers, f, indent=4)
         f.close()
 
     for task_id in tqdm(range(dataset_size)):
         different_answer = different_answers[task_id]
         if args.method == "pessimistic":
-            response_and_scores = pessimistic_select_k(different_answer, k=k, threshold=0.0)
+            response_and_scores = pessimistic_select_k(different_answer, k=k, threshold=threshold)
         elif args.method == "majority":
             response_and_scores = majority_k(different_answer, k=k)
         elif args.method == "reward":
@@ -154,6 +169,8 @@ if __name__ == "__main__":
         raw_ground_truth = problems[task_id][gt_column_name]
         pass_at_k = 0
         have_failed = False
+        if response_and_scores[0]["response"] == "Too many answers":
+            continue
         for sample_id in range(len(response_and_scores)):
             response = response_and_scores[sample_id]["response"]
             rm_score = response_and_scores[sample_id]["score"]

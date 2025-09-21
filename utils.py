@@ -1,10 +1,11 @@
 import numpy as np
 from qwen_matheval.grader import math_equal
 from qwen_matheval.parser import extract_answer, strip_string
+from tqdm import tqdm
 
 def count_different_answers(rm_responses):
     unique_answers = []
-    for response in rm_responses:
+    for response in tqdm(rm_responses):
         pred = extract_answer(response["response"], "math")
         score = response["score"]
         found = False
@@ -21,6 +22,17 @@ def count_different_answers(rm_responses):
                 "count": 1,
                 "reward_scores": [score]
             })
+        
+        if len(unique_answers) > 20:
+            print("Warning: more than 20 unique answers found!")
+            return [
+                {
+                    "answer": "Too many answers",
+                    "count": len(rm_responses),
+                    "reward_scores": [0.0],
+                    "freq": 1.0
+                }
+            ]
     for answer_info in unique_answers:
         answer_info["reward_scores"] = np.mean(answer_info["reward_scores"])
         answer_info["freq"] = answer_info["count"]/len(rm_responses)

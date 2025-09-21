@@ -12,7 +12,7 @@ device = "auto" # the device to load the model onto
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Load a reward model and perform inference.')
     parser.add_argument('--model_name', type=str, required=True, help='The name or path of the model to load.')
-    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math", "aime24"], help="Dataset to use for generation")
+    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva"], help="Dataset to use for generation")
     parser.add_argument("--num_samples_per_task", type=int, default=5, help="Number of samples to score for each task")
     args = parser.parse_args()
     model_name = args.model_name
@@ -35,10 +35,22 @@ if __name__ == "__main__":
         problems = Dataset.from_parquet(f"dataset/gsm8k_hard.parquet")
         gt_column_name = "answer"
         question_column_name = "question"
+    elif dataset_name == "aime24":
+        problems = Dataset.from_parquet(f"dataset/aime24.parquet")
+        gt_column_name = "answer"
+        question_column_name = "problem"
+    elif dataset_name == "minerva":
+        problems = Dataset.from_parquet(f"dataset/minerva_math.parquet")
+        gt_column_name = "answer"
+        question_column_name = "question"
+    elif dataset_name == "math500":
+        problems = Dataset.from_parquet(f"dataset/math500.parquet")
+        gt_column_name = "answer"
+        question_column_name = "problem"
 
     dataset_size = len(problems)
 
-    f = open(f"output/qwen25_gsm8k_{num_samples_per_task}.json", "r")
+    f = open(f"output/qwen25_{dataset_name}_{num_samples_per_task}.json", "r")
     predictions = json.load(f)
     f.close()
 
@@ -77,7 +89,7 @@ if __name__ == "__main__":
             })
             pbar.update(1)
 
-    output_file = f"output/qwen25_gsm8k_{num_samples_per_task}_with_scores.json"
+    output_file = f"output/qwen25_{dataset_name}_{num_samples_per_task}_with_scores.json"
     with open(output_file, "w") as f:
         json.dump(pred_with_scores, f)  
     f.close()
