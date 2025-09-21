@@ -22,17 +22,6 @@ def count_different_answers(rm_responses):
                 "count": 1,
                 "reward_scores": [score]
             })
-        
-        if len(unique_answers) > 20:
-            print("Warning: more than 20 unique answers found!")
-            return [
-                {
-                    "answer": "Too many answers",
-                    "count": len(rm_responses),
-                    "reward_scores": [0.0],
-                    "freq": 1.0
-                }
-            ]
     for answer_info in unique_answers:
         answer_info["reward_scores"] = np.mean(answer_info["reward_scores"])
         answer_info["freq"] = answer_info["count"]/len(rm_responses)

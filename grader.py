@@ -98,6 +98,7 @@ if __name__ == "__main__":
     parser.add_argument("--pass_at", type=int, default=3, help="Number of samples to select based on RM scores")
     parser.add_argument("--method", type=str, default="pessimistic", choices=["pessimistic", "majority", "reward"], help="Method to select k samples")
     parser.add_argument("--threshold", type=float, default="0.0")
+    parser.add_argument('--output_file', type=str, default='', help='File to save the final results.')
     
 
     args = parser.parse_args()
@@ -107,6 +108,8 @@ if __name__ == "__main__":
     num_samples_per_task = args.num_samples
     k = args.pass_at
     threshold = args.threshold
+    input_file = args.input_file
+    output_file = args.output_file
     # method = args.method
 
 
@@ -144,8 +147,8 @@ if __name__ == "__main__":
     # not_all_pass = []
     different_answers = []
 
-    if os.path.exists(f"output/{dataset_name}_{num_samples_per_task}_different_answers.json"):
-        f = open(f"output/{dataset_name}_{num_samples_per_task}_different_answers.json", "r")
+    if os.path.exists(output_file):
+        f = open(output_file, "r")
         different_answers = json.load(f)
         f.close()
     else:
@@ -154,7 +157,7 @@ if __name__ == "__main__":
             different_answer = count_different_answers(response_and_scores)
             different_answers.append(different_answer)
     
-        f = open(f"output/{dataset_name}_{num_samples_per_task}_different_answers.json", "w")
+        f = open(output_file, "w")
         json.dump(different_answers, f, indent=4)
         f.close()
 

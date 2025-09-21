@@ -14,10 +14,14 @@ if __name__ == "__main__":
     parser.add_argument('--model_name', type=str, required=True, help='The name or path of the model to load.')
     parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva"], help="Dataset to use for generation")
     parser.add_argument("--num_samples_per_task", type=int, default=5, help="Number of samples to score for each task")
+    parser.add_argument('--output_file', type=str, default='scored_outputs.json', help='File to save the scored outputs.')
+    parser.add_argument('--input_file', type=str, help='Input file containing the generated samples in JSON format.')
     args = parser.parse_args()
     model_name = args.model_name
     dataset_name = args.dataset
     num_samples_per_task = args.num_samples_per_task
+    output_file = args.output_file
+    input_file = args.input_file
 
 
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -50,7 +54,7 @@ if __name__ == "__main__":
 
     dataset_size = len(problems)
 
-    f = open(f"output/qwen25_{dataset_name}_{num_samples_per_task}.json", "r")
+    f = open(input_file, "r")
     predictions = json.load(f)
     f.close()
 
@@ -89,7 +93,6 @@ if __name__ == "__main__":
             })
             pbar.update(1)
 
-    output_file = f"output/qwen25_{dataset_name}_{num_samples_per_task}_with_scores.json"
     with open(output_file, "w") as f:
         json.dump(pred_with_scores, f)  
     f.close()
