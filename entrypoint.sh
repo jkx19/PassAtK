@@ -8,6 +8,7 @@ cd ..
 pip3 install word2number
 mkdir output
 pip3 install matplotlib
+pip3 install lox
 
 
 

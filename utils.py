@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 def count_different_answers(rm_responses):
     unique_answers = []
-    for response in tqdm(rm_responses):
+    for response in rm_responses:
         pred = extract_answer(response["response"], "math")
         score = response["score"]
         found = False

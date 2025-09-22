@@ -15,6 +15,9 @@ from utils import count_different_answers
 from tqdm import tqdm
 import json
 import os
+import lox
+
+
 
 def reward_function(dataset_name, response, raw_gt_answer):
     if dataset_name == "gsm8k":
@@ -38,8 +41,6 @@ def reward_function(dataset_name, response, raw_gt_answer):
         ground_truth = str(raw_gt_answer)
         prediction = extract_answer(response, "math")
         return 1 if math_equal(prediction, ground_truth, timeout=True) else 0
-
-
 
 
 def pessimistic_select_k(different_answers, k, threshold=0.2):
@@ -93,12 +94,14 @@ if __name__ == "__main__":
 
     # Add arguments
     parser.add_argument("--num_samples", type=int, default=50, help="Number of samples to generate for each task")
+    parser.add_argument("--real_N", type=int, default=50, help="Number of real samples to generate for each task")
     parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva"], help="Dataset to use for generation")
     parser.add_argument("--input_file", type=str, default=None, help="Input file containing questions (if not using built-in datasets)")
     parser.add_argument("--pass_at", type=int, default=3, help="Number of samples to select based on RM scores")
     parser.add_argument("--method", type=str, default="pessimistic", choices=["pessimistic", "majority", "reward"], help="Method to select k samples")
     parser.add_argument("--threshold", type=float, default="0.0")
     parser.add_argument('--output_file', type=str, default='', help='File to save the final results.')
+    parser.add_argument("--threading", type=int, default=8, help="Number of threads for parallel processing")
     
 
     args = parser.parse_args()
@@ -110,6 +113,11 @@ if __name__ == "__main__":
     threshold = args.threshold
     input_file = args.input_file
     output_file = args.output_file
+    real_N = args.real_N
+    num_threads = args.threading
+    if real_N > num_samples_per_task:
+        print("Error: real_N should be less than or equal to num_samples_per_task")
+        exit(1)
     # method = args.method
 
 
@@ -152,10 +160,12 @@ if __name__ == "__main__":
         different_answers = json.load(f)
         f.close()
     else:
-        for task_id in tqdm(range(dataset_size)):
-            response_and_scores = prediction_w_scores[task_id]
-            different_answer = count_different_answers(response_and_scores)
-            different_answers.append(different_answer)
+        different_answer_threads = lox.thread(num_threads)(count_different_answers)
+        for task_id in range(dataset_size):
+            response_and_scores = prediction_w_scores[task_id][:real_N]
+            different_answer_threads.scatter(response_and_scores)
+            # different_answer = count_different_answers(response_and_scores)
+        different_answers = different_answer_threads.gather(tqdm=True)
     
         f = open(output_file, "w")
         json.dump(different_answers, f, indent=4)
