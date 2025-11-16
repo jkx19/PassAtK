@@ -31,9 +31,8 @@ def reward_function(dataset_name, response, raw_gt_answer):
         prediction = extract_answer(response, "math")
         return 1 if math_equal(prediction, ground_truth, timeout=True) else 0
 
-    elif dataset_name == "aime24":
+    elif dataset_name == "aime24" or dataset_name == "aime25":
         ground_truth = str(raw_gt_answer)
-        # ground_truth = extract_answer(raw_gt_answer, "math")
         prediction = extract_answer(response, "math")
         return 1 if math_equal(prediction, ground_truth, timeout=True) else 0
     
@@ -95,7 +94,7 @@ if __name__ == "__main__":
     # Add arguments
     parser.add_argument("--num_samples", type=int, default=50, help="Number of samples to generate for each task")
     parser.add_argument("--real_N", type=int, default=50, help="Number of real samples to generate for each task")
-    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva"], help="Dataset to use for generation")
+    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva", "aime25"], help="Dataset to use for generation")
     parser.add_argument("--input_file", type=str, default=None, help="Input file containing questions (if not using built-in datasets)")
     parser.add_argument("--pass_at", type=int, default=3, help="Number of samples to select based on RM scores")
     parser.add_argument("--method", type=str, default="pessimistic", choices=["pessimistic", "majority", "reward"], help="Method to select k samples")
@@ -126,11 +125,10 @@ if __name__ == "__main__":
         problems = Dataset.from_parquet(f"dataset/gsm8k_hard.parquet")
         gt_column_name = "answer"
         question_column_name = "question"
-    elif dataset_name == "math":
-        # dataset = load_dataset("lighteval/MATH", "all")
-        problems = Dataset.from_parquet(f"dataset/math_test_fix.parquet")
+    elif dataset_name == "aime25":
+        problems = Dataset.from_parquet(f"dataset/aime25.parquet")
         gt_column_name = "answer"
-        question_column_name = "question"
+        question_column_name = "problem"
     elif dataset_name == "aime24":
         problems = Dataset.from_parquet(f"dataset/aime24.parquet")
         gt_column_name = "answer"

@@ -12,7 +12,7 @@ device = "auto" # the device to load the model onto
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Load a reward model and perform inference.')
     parser.add_argument('--model_name', type=str, required=True, help='The name or path of the model to load.')
-    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva"], help="Dataset to use for generation")
+    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva", "aime25"], help="Dataset to use for generation")
     parser.add_argument("--num_samples_per_task", type=int, default=5, help="Number of samples to score for each task")
     parser.add_argument('--output_file', type=str, default='scored_outputs.json', help='File to save the scored outputs.')
     parser.add_argument('--input_file', type=str, help='Input file containing the generated samples in JSON format.')
@@ -41,6 +41,10 @@ if __name__ == "__main__":
         question_column_name = "question"
     elif dataset_name == "aime24":
         problems = Dataset.from_parquet(f"dataset/aime24.parquet")
+        gt_column_name = "answer"
+        question_column_name = "problem"
+    elif dataset_name == "aime25":
+        problems = Dataset.from_parquet(f"dataset/aime25.parquet")
         gt_column_name = "answer"
         question_column_name = "problem"
     elif dataset_name == "minerva":

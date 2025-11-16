@@ -48,7 +48,7 @@ if __name__ == "__main__":
     parser.add_argument("--strategy", type=str, choices=["greedy", "sample"])
     parser.add_argument("--num_samples", type=int, default=50, help="Number of samples to generate for each task")
     parser.add_argument("--model_name", type=str, default="Qwen/Qwen2-7B-Instruct", help="Model name")
-    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva"], help="Dataset to use for generation")
+    parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva", "aime25"], help="Dataset to use for generation")
     parser.add_argument("--output_file", type=str, default="output.json", help="File to save the generated outputs")
     parser.add_argument("--dtype", type=str, default="bfloat16")
     parser.add_argument("--system_prompt", type=str, default=None, help="System prompt for the model")
@@ -65,7 +65,6 @@ if __name__ == "__main__":
         gt_column_name = "answer"
         question_column_name = "question"
     elif dataset_name == "aime25":
-        # dataset = load_dataset("lighteval/MATH", "all")
         problems = Dataset.from_parquet(f"dataset/aime25.parquet")
         gt_column_name = "answer"
         question_column_name = "problem"
@@ -95,7 +94,7 @@ if __name__ == "__main__":
         sampling_params = SamplingParams(n=num_samples_per_task, top_k=-1,temperature=0, max_tokens=8192)
 
     elif strategy == "sample":
-        sampling_params = SamplingParams(n=num_samples_per_task, top_k=20, temperature=0.6, top_p=0.95, min_p=0.0, max_tokens=38912)
+        sampling_params = SamplingParams(n=num_samples_per_task, top_k=20, temperature=0.6, top_p=0.95, min_p=0.0, max_tokens=65536)
 
     all_prompts = []
     cnt = 0
@@ -110,7 +109,7 @@ if __name__ == "__main__":
                 {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{}."},
                 {"role": "user", "content": problems[task_id][question_column_name]}
             ]
-        elif dataset_name == "aime24" or dataset_name == "minerva":
+        elif dataset_name == "aime24" or dataset_name == "minerva" or dataset_name == "aime25":
             cur_message = [
                 {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{}."},
                 {"role": "user", "content": problems[task_id][question_column_name]}
