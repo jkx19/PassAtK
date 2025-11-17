@@ -87,6 +87,36 @@ def majority_k(different_answers, k):
         )
     return k_answers
 
+
+def soft_best_of_n(different_answers, k, beta):
+    soft_scores = []
+    for answer_info in different_answers:
+        freq = answer_info["freq"]
+        soft_score = freq * np.exp(beta * answer_info["reward_scores"])
+        soft_scores.append({
+            "answer": answer_info["answer"],
+            "soft_score": soft_score,
+            "freq": freq,
+            "reward_scores": answer_info["reward_scores"]
+        })
+    sorted_answers = sorted(soft_scores, key=lambda x: x["soft_score"], reverse=True)
+    k_answers = []
+    for i in range(min(k, len(sorted_answers))):
+        answer = sorted_answers[i]["answer"]
+        k_answers.append(
+            {
+                "response": "\\boxed{" + answer + "}",
+                "score": sorted_answers[i]["reward_scores"]
+            }
+        )
+    return k_answers
+        
+    # sorted_responses = sorted(responses_and_scores, key=lambda x: x["score"], reverse=True)
+    
+    # return sorted_responses[:k]
+
+
+
 if __name__ == "__main__":
     # Create the argument parser
     parser = argparse.ArgumentParser(description='Process some parameters for text generation.')
@@ -97,7 +127,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str, default="gsm8k", choices=["gsm8k", "math500", "aime24", "minerva", "aime25"], help="Dataset to use for generation")
     parser.add_argument("--input_file", type=str, default=None, help="Input file containing questions (if not using built-in datasets)")
     parser.add_argument("--pass_at", type=int, default=3, help="Number of samples to select based on RM scores")
-    parser.add_argument("--method", type=str, default="pessimistic", choices=["pessimistic", "majority", "reward"], help="Method to select k samples")
+    parser.add_argument("--method", type=str, default="pessimistic", choices=["pessimistic", "majority", "reward", "softBoN"], help="Method to select k samples")
     parser.add_argument("--threshold", type=float, default="0.0")
     parser.add_argument('--output_file', type=str, default='', help='File to save the final results.')
     parser.add_argument("--threading", type=int, default=8, help="Number of threads for parallel processing")
@@ -177,6 +207,9 @@ if __name__ == "__main__":
             response_and_scores = majority_k(different_answer, k=k)
         elif args.method == "reward":
             response_and_scores = select_k_by_reward(different_answer, k=k)
+        elif args.method == "softBoN":
+            beta = 1.0
+            response_and_scores = soft_best_of_n(different_answer, k=k, beta=beta)
         raw_ground_truth = problems[task_id][gt_column_name]
         pass_at_k = 0
         have_failed = False
