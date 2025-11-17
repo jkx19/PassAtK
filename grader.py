@@ -89,24 +89,31 @@ def majority_k(different_answers, k):
 
 
 def soft_best_of_n(different_answers, k, beta):
-    soft_scores = []
+    all_soft_scores = []
     for answer_info in different_answers:
         freq = answer_info["freq"]
         soft_score = freq * np.exp(beta * answer_info["reward_scores"])
-        soft_scores.append({
+        all_soft_scores.append(soft_score)
+    Z = sum(all_soft_scores)
+    answer_w_soft_scores = []
+    for answer_info in different_answers:
+        freq = answer_info["freq"]
+        soft_score = freq * np.exp(beta * answer_info["reward_scores"]) / Z
+        answer_w_soft_scores.append({
             "answer": answer_info["answer"],
             "soft_score": soft_score,
             "freq": freq,
             "reward_scores": answer_info["reward_scores"]
         })
-    sorted_answers = sorted(soft_scores, key=lambda x: x["soft_score"], reverse=True)
+    probabilities = [x["soft_score"] for x in answer_w_soft_scores]
+    selected_indices = np.random.choice(len(different_answers), size=k, replace=False, p=probabilities)
     k_answers = []
-    for i in range(min(k, len(sorted_answers))):
-        answer = sorted_answers[i]["answer"]
+    for idx in selected_indices:
+        answer = answer_w_soft_scores[idx]["answer"]
         k_answers.append(
             {
                 "response": "\\boxed{" + answer + "}",
-                "score": sorted_answers[i]["reward_scores"]
+                "score": answer_w_soft_scores[idx]["reward_scores"]
             }
         )
     return k_answers
