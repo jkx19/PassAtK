@@ -124,6 +124,25 @@ def soft_best_of_n(different_answer, k, beta):
 
 
 
+def reward_calibration(different_answer):
+    calibrated_different_answer = []
+    total_answers = sum([x["count"] for x in different_answer])
+    sorted_answers = sorted(different_answer, key=lambda x: x["reward_scores"])
+    worser_count = 0
+    for answer_info in sorted_answers:
+        count = answer_info["count"]
+        calibrated_reward_score = (worser_count + 0.5 * count) / total_answers
+        calibrated_different_answer.append({
+            "answer": answer_info["answer"],
+            "count": count,
+            "freq": count / total_answers,
+            "reward_scores": calibrated_reward_score
+        })
+        worser_count += count
+    return different_answer
+    # for answer_info in sorted_answers:
+
+
 if __name__ == "__main__":
     # Create the argument parser
     parser = argparse.ArgumentParser(description='Process some parameters for text generation.')
@@ -138,6 +157,7 @@ if __name__ == "__main__":
     parser.add_argument("--threshold", type=float, default="0.0")
     parser.add_argument('--output_file', type=str, default='', help='File to save the final results.')
     parser.add_argument("--threading", type=int, default=8, help="Number of threads for parallel processing")
+    parser.add_argument("--calibrate", action='store_true', help="Whether to perform reward calibration")
     
 
     args = parser.parse_args()
@@ -151,6 +171,7 @@ if __name__ == "__main__":
     output_file = args.output_file
     real_N = args.real_N
     num_threads = args.threading
+    calibrate = args.calibrate
     if real_N > num_samples_per_task:
         print("Error: real_N should be less than or equal to num_samples_per_task")
         exit(1)
@@ -205,6 +226,14 @@ if __name__ == "__main__":
         f = open(output_file, "w")
         json.dump(different_answers, f, indent=4)
         f.close()
+
+    if calibrate:
+        calibrated_different_answers = []
+        for task_id in tqdm(range(dataset_size)):
+            different_answer = different_answers[task_id]
+            calibrated_different_answer = reward_calibration(different_answer)
+            calibrated_different_answers.append(calibrated_different_answer)
+        different_answers = calibrated_different_answers
 
     for task_id in tqdm(range(dataset_size)):
         different_answer = different_answers[task_id]

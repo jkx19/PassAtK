@@ -15,5 +15,5 @@ different_answers_file="output/qwen2.5_7b_${dataset}_${Sample_N}_${Real_N}_diffe
 
 # python3 inference.py --model_name ${model_name} --dataset ${dataset} --output_file ${inference_output_file} --num_samples ${Sample_N} --strategy sample
 # python3 reward.py --model_name ${reward_model_name} --dataset ${dataset} --num_samples_per_task ${Sample_N} --input_file ${inference_output_file} --output_file ${prediction_w_rm_score_file}
-python3 grader.py --dataset ${dataset} --input_file ${prediction_w_rm_score_file} --pass_at ${K} --num_samples ${Sample_N} --real_N ${Real_N} --threading ${num_threads} --output_file ${different_answers_file} --method pessimistic
+python3 grader.py --dataset ${dataset} --input_file ${prediction_w_rm_score_file} --pass_at ${K} --num_samples ${Sample_N} --real_N ${Real_N} --threading ${num_threads} --output_file ${different_answers_file} --method pessimistic --calibrate
 
