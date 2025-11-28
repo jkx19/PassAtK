@@ -9,6 +9,32 @@ from tqdm import tqdm
 # model_name = "nvidia/AceMath-7B-RM" # Path to the model
 device = "auto" # the device to load the model onto
 
+def predict_reward_score(reward_model, tokenizer, reward_model_name, conversation):
+    if reward_model_name == "nvidia/AceMath-7B-RM":
+        conversation_str = tokenizer.apply_chat_template(
+            conversation, 
+            tokenize=False, 
+            add_generation_prompt=False
+        )
+
+        input_ids = tokenizer.encode(
+            conversation_str, 
+            return_tensors="pt", 
+            add_special_tokens=False
+        ).to(reward_model.device)
+
+        with torch.no_grad():
+            outputs = reward_model(input_ids=input_ids)
+            score = outputs[0][0].item()
+            return score
+    
+    elif reward_model_name == "internlm/internlm2-1_8b-reward":
+        score = reward_model.get_score(tokenizer, conversation)
+        return score
+
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Load a reward model and perform inference.')
     parser.add_argument('--model_name', type=str, required=True, help='The name or path of the model to load.')
@@ -24,13 +50,21 @@ if __name__ == "__main__":
     input_file = args.input_file
 
 
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_name, 
-        device_map=device, 
-        num_labels=1,
-        torch_dtype=torch.bfloat16,
-        trust_remote_code=True,
-    ).eval()
+    if model_name == "nvidia/AceMath-7B-RM":
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_name, 
+            device_map=device, 
+            num_labels=1,
+            torch_dtype=torch.bfloat16,
+            trust_remote_code=True,
+        ).eval()
+    elif model_name == "internlm/internlm2-1_8b-reward":
+        model = AutoModel.from_pretrained(
+            "internlm/internlm2-1_8b-reward", 
+            device_map="cuda", 
+            dtype=torch.float16, 
+            trust_remote_code=True,
+        )
 
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 
@@ -75,21 +109,23 @@ if __name__ == "__main__":
                 {"role": "user", "content": question},
                 {"role": "assistant", "content": response}
             ]
-            conversation_str = tokenizer.apply_chat_template(
-                conversation, 
-                tokenize=False, 
-                add_generation_prompt=False
-            )
+            # conversation_str = tokenizer.apply_chat_template(
+            #     conversation, 
+            #     tokenize=False, 
+            #     add_generation_prompt=False
+            # )
 
-            input_ids = tokenizer.encode(
-                conversation_str, 
-                return_tensors="pt", 
-                add_special_tokens=False
-            ).to(model.device)
+            # input_ids = tokenizer.encode(
+            #     conversation_str, 
+            #     return_tensors="pt", 
+            #     add_special_tokens=False
+            # ).to(model.device)
 
-            with torch.no_grad():
-                outputs = model(input_ids=input_ids)
-                score = outputs[0][0].item()
+            # with torch.no_grad():
+            #     outputs = model(input_ids=input_ids)
+            #     score = outputs[0][0].item()
+
+            score = predict_reward_score(model, tokenizer, model_name, conversation)
 
             pred_with_scores[task_id].append({
                 "response": response,

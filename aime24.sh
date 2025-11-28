@@ -2,9 +2,11 @@ export HF_HOME=/data/huggingface
 # conda activate vllm
 export CUDA_VISIBLE_DEVICES=4,5,6,7
 
-model_name="LGAI-EXAONE/EXAONE-4.0-1.2B"
+model_name="Qwen/Qwen2.5-Math-1.5B-Instruct"
+model_alias="qwen2.5_1.5b"
 dataset="aime25"
-reward_model_name="nvidia/AceMath-7B-RM"
+reward_model_name="internlm/internlm2-1_8b-reward"
+reward_model_alias="internRM"
 Sample_N=1
 Real_N=1
 K=1
